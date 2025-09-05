@@ -232,11 +232,6 @@ FROM OnlineRetail
 GROUP BY CustomerID
 ORDER BY Monetary DESC;
 
-------------------------------------------------------------
--- ✅ END OF SCRIPT
-------------------------------------------------------------
-
-
 SELECT COUNT(*) AS TotalRows FROM OnlineRetail;
 
 -- Count NULL CustomerID
@@ -247,3 +242,214 @@ SELECT COUNT(*) AS CancelledInvoices FROM OnlineRetail WHERE InvoiceNo LIKE 'C%'
 
 -- Count rows with Quantity <= 0
 SELECT COUNT(*) AS BadQuantity FROM OnlineRetail WHERE Quantity <= 0;
+
+
+------------------------------------------------------------
+-- ✅ END OF SCRIPT
+------------------------------------------------------------
+
+```
+
+
+
+---
+
+
+
+## 🔹 Step 2: Machine Learning (Python - Jupyter Notebook)
+```
+# Core libraries
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# ML tools
+from sklearn.preprocessing import StandardScaler
+from sklearn.cluster import KMeans
+- Imported RFM dataset from SQL into Jupyter.  
+- Preprocessed data:
+  - Handled missing values.  
+  - Scaled features using StandardScaler.  
+- Applied **K-Means clustering**.  
+- Evaluated with **Elbow Method** and **Silhouette Score**.  
+- Chose **k=4 clusters**.  
+
+# Load RFM dataset
+df = pd.read_csv(r"D:\Projects\Online Retail\RFM_OnlineRetail.csv" , header=None)
+
+# Assign proper column names
+df.columns = ['CustomerID', 'Recency', 'Frequency', 'Monetary']
+
+print(df.head())
+print(df.columns)
+### Cluster Results
+- **Cluster 0 – Loyal Customers** → Frequent buyers with healthy spend.  
+- **Cluster 1 – Occasional Shoppers** → Infrequent, low-spend customers.  
+- **Cluster 2 – Super VIPs** → High spend, very frequent.  
+- **Cluster 3 – At Risk** → Very old recency, low spend.
+```
+📷 *RFM Dataset:*  
+![RFM Dataset](Images/RFM_Dataset.png)  
+```
+# Dataset Shape
+print("Dataset Shape:", df.shape)
+print(df.head())
+```
+📷 *Dataset Shape:*  
+![Dataset Shape](Images/Dataset_shape.png)  
+```
+# Check for missing values
+print(df.isnull().sum())
+```
+📷 *Missing Value Check:*  
+![Missing Value Check](Images/MVC.png)  
+```
+# Drop nulls if any
+df = df.dropna()
+
+# Scaling the dataset (Feature Scaling)
+scaler = StandardScaler()
+X = scaler.fit_transform(df[['Recency','Frequency','Monetary']])
+
+print(df.columns)
+print(df.head())
+```
+📷 *Feature Scaling:*  
+![Feature Scaling](Images/Feature_scaling.png)  
+```
+# Elbow Method (Find Optimal k)
+wcss = []
+for i in range(1, 11):
+    kmeans = KMeans(n_clusters=i, random_state=42, n_init=10)
+    kmeans.fit(X)
+    wcss.append(kmeans.inertia_)
+
+plt.plot(range(1, 11), wcss, marker='o')
+plt.xlabel("Number of clusters")
+plt.ylabel("WCSS")
+plt.title("Elbow Method for Optimal k")
+plt.show()
+```
+📷 *Elbow Method*  
+![Elbow Method](Images/Elbow.png)  
+```
+# Try KMeans with k=3
+kmeans3 = KMeans(n_clusters=3, random_state=42, n_init=10)
+df['Cluster3'] = kmeans3.fit_predict(X)
+
+# Try KMeans with k=4
+kmeans4 = KMeans(n_clusters=4, random_state=42, n_init=10)
+df['Cluster4'] = kmeans4.fit_predict(X)
+
+# Compare average RFM values for each option
+print("===== k=3 Cluster Summary =====")
+print(df.groupby('Cluster3')[['Recency','Frequency','Monetary']].mean())
+
+print("\n===== k=4 Cluster Summary =====")
+print(df.groupby('Cluster4')[['Recency','Frequency','Monetary']].mean())
+
+# Plot k=3 clusters
+sns.scatterplot(data=df, x='Frequency', y='Monetary', hue='Cluster3', palette='tab10')
+plt.title("Customer Segments with k=3")
+plt.show()
+
+# Plot k=4 clusters
+sns.scatterplot(data=df, x='Frequency', y='Monetary', hue='Cluster4', palette='tab10')
+plt.title("Customer Segments with k=4")
+plt.show()
+```
+📷 *Cluster Summary*  
+![Cluster Summary](Images/cluster_summary.png)  
+📷 *Customer Segments*  
+![Cluster Segments](Images/Customer_segments.png)  
+```
+# Train KMeans with k=4
+kmeans = KMeans(n_clusters=4, random_state=42, n_init=10)
+df['Cluster'] = kmeans.fit_predict(X)
+
+# Verify
+print(df.head())
+```
+📷 *Train with k=4:*  
+![k=4](Images/k4.png)  
+```
+# Average values by cluster
+summary = df.groupby('Cluster')[['Recency','Frequency','Monetary']].mean()
+print("Cluster Summary (k=4):\n", summary)
+
+# Customer count per cluster
+print("\nCustomer counts per cluster:\n", df['Cluster'].value_counts())
+
+# Scatterplots for visualization
+sns.scatterplot(data=df, x='Frequency', y='Monetary', hue='Cluster', palette='tab10')
+plt.title("Customer Segments by Frequency & Monetary (k=4)")
+plt.show()
+
+sns.scatterplot(data=df, x='Recency', y='Monetary', hue='Cluster', palette='tab10')
+plt.title("Customer Segments by Recency & Monetary (k=4)")
+plt.show()
+```
+
+📷 *Customer Count:*  
+![Customer Count](Images/Customer_count.png)  
+📷 *Segments by R/F vs M:*  
+![Customer Segments by Recency/Frequency vs Monetary](Images/rfvsm.png)  
+
+```
+# Map cluster IDs to business-friendly labels
+cluster_map = {
+    0: "Loyal Customers",
+    1: "Occasional Shoppers",
+    2: "Super VIPs",
+    3: "Churned Customers"
+}
+
+df['ClusterLabel'] = df['Cluster'].map(cluster_map)
+
+# Verify
+print(df[['CustomerID','Recency','Frequency','Monetary','Cluster','ClusterLabel']].head())
+```
+📷 *Mapping:*  
+![Cluster Plot](Images/mapping.png)  
+```
+df.groupby("ClusterLabel")[["Recency","Frequency","Monetary"]].mean()
+```  
+![Groupby](Images/groupby.png)  
+```
+# Bar chart: Number of customers per cluster
+sns.countplot(x='ClusterLabel', data=df, order=df['ClusterLabel'].value_counts().index, palette="Set2")
+plt.title("Customer Distribution by Segment")
+plt.xlabel("Customer Segment")
+plt.ylabel("Number of Customers")
+plt.xticks(rotation=20)
+plt.show()
+```
+📷 *Bar Chart:*  
+![Bar Chart](Images/bar_chart.png)  
+```
+
+# Scatter: Frequency vs Monetary with labels
+sns.scatterplot(data=df, x='Frequency', y='Monetary', hue='ClusterLabel', palette='tab10')
+plt.title("Customer Segments (k=4)")
+plt.show()
+```
+📷 *Cluster Plot:*  
+![Cluster Plot](Images/Clustersf.png)  
+```
+#HeatMap
+import seaborn as sns
+plt.figure(figsize=(8,5))
+sns.heatmap(df.groupby('Cluster')[['Recency','Frequency','Monetary']].mean(), annot=True, cmap="YlGnBu")
+plt.title("Average RFM by Cluster")
+plt.show()
+```
+📷 *Heatmap:*  
+![Heatmap](Images/heatmap.png)  
+```
+#Exporting the File
+df.to_csv("RFM_Clusters.csv", index=False)
+print("Clustered dataset with labels saved as RFM_Clusters.csv")
+```
+Clustered dataset with labels saved as RFM_Clusters.csv
+
+
