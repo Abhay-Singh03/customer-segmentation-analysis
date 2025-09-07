@@ -302,7 +302,7 @@ print(df.head())
 print(df.isnull().sum())
 ```
 📷 *Missing Value Check:*  
-![Missing Value Check](Images/MVC.png)  
+![Missing Value Check](Images/MCV.png)  
 ```
 # Drop nulls if any
 df = df.dropna()
@@ -452,4 +452,6 @@ print("Clustered dataset with labels saved as RFM_Clusters.csv")
 ```
 Clustered dataset with labels saved as RFM_Clusters.csv
 
-
+## 🔹 PowerBI
+📷 *Final Dashboard:*  
+![Dashboard](Images/Dashboard.png)  
